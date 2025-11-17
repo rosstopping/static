@@ -13,7 +13,7 @@ module.exports = {
 
         let page = this.getPage(filePath);
 
-        const layoutTagExists = /<layout[^>]*>[\s\S]*?<\/layout>/.test(page);
+        const layoutTagExists = /<layout[\s\S]*?>[\s\S]*?<\/layout>/i.test(page);
 
         if (layoutTagExists) {
             layoutAttributes = this.getLayoutAttributes(page);
@@ -95,7 +95,7 @@ module.exports = {
     },
 
     processFrontMatterConditions(content, data) {
-        const conditionRegex = /<If condition="([^"]+)">([\s\S]*?)<\/If>/g;
+        const conditionRegex = /<If[\s\S]+?condition\s*=\s*"([^"]+)"[\s\S]*?>([\s\S]*?)<\/If>/gi;
 
         return content.replace(conditionRegex, (match, condition, body) => {
             // Evaluate the condition using the frontmatter data
@@ -199,7 +199,7 @@ module.exports = {
     getPage(filePath) {
         page = fs.readFileSync(filePath, 'utf8');
 
-        const pageTagRegex = /<page\s+src="([^"]+)"><\/page>/;
+        const pageTagRegex = /<page[\s\S]+?src\s*=\s*"([^"]+)"[\s\S]*?>([\s\S]*?)<\/page>/i;
         const match = page.match(pageTagRegex);
 
         if (match) {
@@ -235,12 +235,12 @@ module.exports = {
     },
 
     getLayoutAttributes(page) {
-        const layoutTagRegex = /<layout\s+([^>]*)>([\s\S]*?)<\/layout>/;
+        const layoutTagRegex = /<layout[\s\S]+?>([\s\S]*?)<\/layout>/i;
         const layoutTagMatch = page.match(layoutTagRegex);
 
         if (layoutTagMatch) {
-            const attributesString = layoutTagMatch[1];
-            const attributesRegex = /(\w+)="([^"]*)"/g;
+            const attributesString = layoutTagMatch[0].match(/<layout[\s\S]+?>/i)[0];
+            const attributesRegex = /(\w+)\s*=\s*"([^"]*)"/g;
             let attributeMatch;
             let attributes = {};
 
@@ -255,12 +255,12 @@ module.exports = {
     },
 
     getIncludeAttributes(page) {
-        const includeTagRegex = /<include\s+([^>]*)>([\s\S]*?)<\/include>/;
+        const includeTagRegex = /<include[\s\S]+?(?:\/>|>[\s\S]*?<\/include>)/i;
         const includeTagMatch = page.match(includeTagRegex);
 
         if (includeTagMatch) {
-            const attributesString = includeTagMatch[1];
-            const attributesRegex = /(\w+)="([^"]*)"/g;
+            const attributesString = includeTagMatch[0].match(/<include[\s\S]+?(?:\/?>)/i)[0];
+            const attributesRegex = /(\w+)\s*=\s*"([^"]*)"/g;
             let attributeMatch;
             let attributes = {};
 
@@ -283,7 +283,7 @@ module.exports = {
     },
 
     getPageContent(page) {
-        const layoutTagRegex = /<layout[^>]*>([\s\S]*?)<\/layout>/;
+        const layoutTagRegex = /<layout[\s\S]+?>([\s\S]*?)<\/layout>/i;
         const layoutTagMatch = page.match(layoutTagRegex);
 
         if (layoutTagMatch) {
@@ -318,7 +318,7 @@ module.exports = {
 
 
         let includeTag;
-        const includeRegex = /<include\s+[^>]*src="([^"]+)"[^>]*><\/include>/g;
+        const includeRegex = /<include[\s\S]+?src\s*=\s*"([^"]+)"[\s\S]*?(?:\/>|>[\s\S]*?<\/include>)/gi;
 
 
         while ((includeTag = includeRegex.exec(htmlString)) !== null) {
@@ -395,12 +395,10 @@ module.exports = {
     },
 
     replaceForEachContentWithCollection(body) {
-        const regex = /<ForEach\s+([^>]+)>/g;
+        const regex = /<ForEach[\s\S]+?>/gi;
         const updatedBody = body.replace(regex, (match, attributes) => {
-            const updatedAttributes = attributes.replace(/content="([^"]+)"/g, 'collection="content/$1"');
-            //const updatedAttributes = attributes.replace(/content=/g, `collection="content/$&-index-${index}"`);
-            //const updatedAttributes = attributes.replace(/content=/g, 'collection=');
-            return `<ForEach ${updatedAttributes}>`;
+            const updatedAttributes = match.replace(/content\s*=\s*"([^"]+)"/gi, 'collection="content/$1"');
+            return updatedAttributes;
         });
 
         return updatedBody;
@@ -439,13 +437,13 @@ module.exports = {
     },
 
     forEachAttributesAndValues(string) {
-        const regex = /<ForEach\s+([^>]+)>/g;
+        const regex = /<ForEach[\s\S]+?>/i;
         const attributes = {};
 
-        let match;
-        while ((match = regex.exec(string)) !== null) {
-            const attributeString = match[1];
-            const attributeRegex = /(\w+)="([^"]+)"/g;
+        const match = regex.exec(string);
+        if (match) {
+            const attributeString = match[0];
+            const attributeRegex = /(\w+)\s*=\s*"([^"]+)"/g;
             let attributeMatch;
 
             while ((attributeMatch = attributeRegex.exec(attributeString)) !== null) {
@@ -459,18 +457,17 @@ module.exports = {
     },
 
     forEachContentTags(body) {
-        const regex = /<ForEach\s+([^>]+)>/g;
+        const regex = /<ForEach[\s\S]+?>/gi;
         const forEachTags = [];
 
         let match;
         while ((match = regex.exec(body)) !== null) {
             const forEachTag = match[0];
-            const attributeString = match[1];
-            const attributeRegex = /(\w+)="([^"]+)"/g;
+            const attributeRegex = /(\w+)\s*=\s*"([^"]+)"/g;
             let attributeMatch;
             let hasContentAttribute = false;
 
-            while ((attributeMatch = attributeRegex.exec(attributeString)) !== null) {
+            while ((attributeMatch = attributeRegex.exec(forEachTag)) !== null) {
                 const attributeName = attributeMatch[1];
                 const attributeValue = attributeMatch[2];
                 if (attributeName === 'content') {
@@ -500,14 +497,13 @@ module.exports = {
 
     processCollectionLoops(template, filePath, frontmatterData = null) {
         // Regular expression to capture the ForEach sections
-        const loopRegex = /<ForEach\s+([^>]+)>([\s\S]*?)<\/ForEach>/g;
+        const loopRegex = /<ForEach[\s\S]+?>([\s\S]*?)<\/ForEach>/gi;
 
         let match;
         while ((match = loopRegex.exec(template)) !== null) {
-            const attributeString = match[1];
-            const loopBody = match[2];
+            const loopBody = match[1];
 
-            const attributes = this.forEachAttributesAndValues('<ForEach ' + attributeString + '>');
+            const attributes = this.forEachAttributesAndValues(match[0]);
 
             // Extract the collection name from the attributes
             //const collectionNameMatch = /collection="([^"]+)"/.exec(attributeString);
@@ -612,7 +608,7 @@ module.exports = {
 
     processConditions(content, data, parentCollection) {
         // Regular expression to capture the If sections
-        const conditionRegex = /<If condition="([^"]+)">([\s\S]*?)<\/If>/g;
+        const conditionRegex = /<If[\s\S]+?condition\s*=\s*"([^"]+)"[\s\S]*?>([\s\S]*?)<\/If>/gi;
 
         return content.replace(conditionRegex, (match, condition, body) => {
             // Convert placeholder {collectionName.key} into JavaScript context variables

@@ -99,6 +99,48 @@ In your `includes/author-card.html`:
 </div>
 ```
 
+### Flexible Tag Formatting
+All custom tags support flexible whitespace and line breaks, making your code more readable. Tags can be written on multiple lines with spaces around attributes, and include tags support both self-closing and regular syntax.
+
+```html
+<!-- Multi-line layout -->
+<layout 
+    title="My Page"
+    src="main.html"
+>
+    Content here
+</layout>
+
+<!-- Self-closing include -->
+<include src="header.html" />
+
+<!-- Multi-line self-closing include -->
+<include 
+    src="card.html" 
+    title="{frontmatter.title}"
+    author="{frontmatter.author}"
+/>
+
+<!-- Regular closing include (also supported) -->
+<include src="footer.html"></include>
+
+<!-- Multi-line ForEach -->
+<ForEach 
+    collection="posts" 
+    orderBy="date, desc"
+    count="5"
+>
+    <article>{posts.title}</article>
+</ForEach>
+
+<!-- Multi-line If condition -->
+<If 
+    condition="frontmatter.published === true"
+>
+    Published content
+</If>
+```
+
 ## 🛠️ Setup in a Snap
 
 Make sure you have Node installed on your machine, and then copy/paste the following command in your terminal:
