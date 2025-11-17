@@ -8,7 +8,7 @@ let isContentFile = false;
 let env = require('./env.js');
 
 module.exports = {
-    processFile(filePath, build=false, url='relative') {
+    processFile(filePath, build=false, url='relative', frontmatterData=null) {
 
 
         let page = this.getPage(filePath);
@@ -31,7 +31,7 @@ module.exports = {
             // replace {slot} with content inside of Layout
             layout = layout.replace('{slot}', this.parseIncludeContent(this.getPageContent(page)));
 
-            page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath);
+            page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath, frontmatterData);
 
             page = this.processCollectionJSON(page);
         }
@@ -42,9 +42,12 @@ module.exports = {
     processContent(contentPath, build=false, url='relative') {
 
         let content = fs.readFileSync(contentPath, 'utf8');
+        
+        // Extract frontmatter early so it can be passed to processFile
+        let contentAttributes = fm(content).attributes;
 
         let pagePath = this.getPageForContent(contentPath);
-        let page = this.processFile(pagePath, build, url);
+        let page = this.processFile(pagePath, build, url, contentAttributes);
 
         showdown.setOption('ghCompatibleHeaderId', true);
         showdown.setOption('tables', true);
@@ -54,7 +57,7 @@ module.exports = {
         let updatedContent = content.replace('[toc]', tableOfContents.content);
 
         let contentHTML = converter.makeHtml(this.removeFrontMatter(updatedContent));
-        let contentAttributes = fm(content).attributes;
+        // contentAttributes already extracted earlier
 
         let staticJS = "window.toc = JSON.parse('" + JSON.stringify(tableOfContents.json).replace(/'/g, "\\'") + "'); window.frontmatter=JSON.parse('" + JSON.stringify(contentAttributes).replace(/'/g, "\\'") + "');";
         let attrTags = "<script>" + staticJS + "</script>";
@@ -453,7 +456,7 @@ module.exports = {
         fs.writeFileSync(filePath, jsonData);
     },
 
-    processCollectionLoops(template, filePath) {
+    processCollectionLoops(template, filePath, frontmatterData=null) {
         // Regular expression to capture the ForEach sections
         const loopRegex = /<ForEach\s+([^>]+)>([\s\S]*?)<\/ForEach>/g;
     
@@ -471,8 +474,28 @@ module.exports = {
             }
             
     
-            // Load the corresponding JSON file
-            let jsonData = JSON.parse(fs.readFileSync(path.join(currentDirectory, '/collections/', `${attributes.collection}.json`), 'utf8'));
+            // Load the corresponding JSON file or frontmatter data
+            let jsonData;
+            if (attributes.collection.startsWith('frontmatter.')) {
+                // Extract frontmatter data
+                if (!frontmatterData) {
+                    console.warn(`No frontmatter data available for collection: ${attributes.collection}`);
+                    continue;
+                }
+                const frontmatterKey = attributes.collection.replace('frontmatter.', '');
+                jsonData = frontmatterData[frontmatterKey];
+                if (!jsonData) {
+                    console.warn(`Frontmatter key '${frontmatterKey}' not found`);
+                    continue;
+                }
+                if (!Array.isArray(jsonData)) {
+                    console.warn(`Frontmatter key '${frontmatterKey}' is not an array`);
+                    continue;
+                }
+            } else {
+                // Load from JSON file
+                jsonData = JSON.parse(fs.readFileSync(path.join(currentDirectory, '/collections/', `${attributes.collection}.json`), 'utf8'));
+            }
 
             let loopKeyword = attributes.collection.replace(/\//g, '.');
             if (attributes.as) {
