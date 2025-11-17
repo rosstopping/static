@@ -40,9 +40,22 @@ Global content goes here.
 Navigate nested JSON structures in collections using the `root` attribute. This allows you to iterate over arrays that are nested within your JSON files.
 
 ```html
-<ForEach collection="data" root="posts.featured">
-    <h2>{data.title}</h2>
+<ForEach collection="menu" root="items" as="item">
+    <h2>{item.title}</h2>
 </ForEach>
+```
+
+```json
+{
+	"items": [
+		{
+			"title": "Home",
+		},
+		{
+			"title": "About",
+		}
+	]
+}
 ```
 
 ### Frontmatter Array Iteration
