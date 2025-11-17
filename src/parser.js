@@ -26,10 +26,10 @@ module.exports = {
             let layout = fs.readFileSync(layoutPath, 'utf8');
 
             // parse any includes that are inside the layout template
-            layout = this.parseIncludeContent(layout);
+            layout = this.parseIncludeContent(layout, frontmatterData);
 
             // replace {slot} with content inside of Layout
-            layout = layout.replace('{slot}', this.parseIncludeContent(this.getPageContent(page)));
+            layout = layout.replace('{slot}', this.parseIncludeContent(this.getPageContent(page), frontmatterData));
 
             page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath, frontmatterData);
 
@@ -77,7 +77,7 @@ module.exports = {
         page = page.replace('{content}', contentHTML);
 
         // this will add the ability to include src partials in your markdown
-        page = this.parseIncludeContent(page);
+        page = this.parseIncludeContent(page, contentAttributes);
 
         return page;
 
@@ -293,7 +293,7 @@ module.exports = {
         return null;
     },
 
-    parseIncludeContent(htmlString) {
+    parseIncludeContent(htmlString, frontmatterData = null) {
 
         // while ((includeTag = includeRegex.exec(htmlString)) !== null) {
         //     const includeSrcPath = path.join(currentDirectory, '/includes/', includeTag[1]);
@@ -329,8 +329,18 @@ module.exports = {
 
             const includeAttributes = this.getIncludeAttributes(includeTag[0]);
             for (const [attribute, value] of Object.entries(includeAttributes)) {
+                let processedValue = value;
+
+                // Process template variables in attribute values (e.g., {frontmatter.name})
+                if (frontmatterData) {
+                    processedValue = this.processFrontMatterReplacements(value, frontmatterData);
+                }
+
+                // Process global data in attribute values (e.g., {global.settings.title})
+                processedValue = this.processGlobalData(processedValue);
+
                 const regex = new RegExp(`{${attribute}}`, 'g');
-                includeContent = includeContent.replace(regex, value);
+                includeContent = includeContent.replace(regex, processedValue);
             }
 
             htmlString = htmlString.replace(includeTag[0], includeContent);
