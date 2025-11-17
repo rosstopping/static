@@ -8,9 +8,12 @@
     "build": "node index.js --build && npx tailwindcss -i ./src/assets/css/main.css -o ./build/assets/css/main.css --minify && npx esbuild ./src/assets/js/main.js --bundle --outfile=./build/assets/js/main.js --minify",
     "test": "jest"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thedevdojo/static.git"
+    "url": "git+https://github.com/rosstopping/static.git"
   },
   "keywords": [
     "static",
@@ -52,7 +55,7 @@
     "static": "bin/static"
   },
   "bugs": {
-    "url": "https://github.com/thedevdojo/static/issues"
+    "url": "https://github.com/rosstopping/static/issues"
   },
-  "homepage": "https://github.com/thedevdojo/static#readme"
+  "homepage": "https://github.com/rosstopping/static#readme"
 }
