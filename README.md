@@ -77,6 +77,28 @@ team:
 </ForEach>
 ```
 
+### Dynamic Include Attributes
+Pass template variables into include attributes, allowing dynamic content to be injected into reusable components. Supports both frontmatter and global data.
+
+```html
+<!-- Use frontmatter data in includes -->
+<include src="author-card.html" name="{frontmatter.author}" role="{frontmatter.role}"></include>
+
+<!-- Use global data in includes -->
+<include src="header.html" siteName="{global.settings.siteName}"></include>
+
+<!-- Mix both -->
+<include src="contact.html" name="{frontmatter.name}" email="{global.contact.email}"></include>
+```
+
+In your `includes/author-card.html`:
+```html
+<div class="author">
+    <h3>{name}</h3>
+    <p>{role}</p>
+</div>
+```
+
 ## 🛠️ Setup in a Snap
 
 Make sure you have Node installed on your machine, and then copy/paste the following command in your terminal:
