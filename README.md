@@ -10,12 +10,66 @@ A static site generator you're going to love. No more complicated configs, bloat
 
 No longer will this stand! <a href="https://static.devdojo.com" target="_blank"><strong>Static</strong></a> is here to reclaim the throne of simplicity!
 
+## 🆕 New Features in This Fork
+
+This fork adds several powerful enhancements to the original Static generator:
+
+### Global Data Files
+Access global markdown files from anywhere in your site using the `{global.filename}` syntax. Place files in `content/global/` and reference them throughout your templates.
+
+```html
+<!-- Access entire content -->
+{global.settings}
+
+<!-- Access specific frontmatter attributes -->
+{global.settings.siteName}
+{global.settings.email}
+```
+
+Example `content/global/settings.md`:
+```markdown
+---
+siteName: My Awesome Site
+email: contact@example.com
+---
+
+Global content goes here.
+```
+
+### Root Attribute for Collections
+Navigate nested JSON structures in collections using the `root` attribute. This allows you to iterate over arrays that are nested within your JSON files.
+
+```html
+<ForEach collection="data" root="posts.featured">
+    <h2>{data.title}</h2>
+</ForEach>
+```
+
+### Frontmatter Array Iteration
+Loop through array data directly from your markdown frontmatter using the `frontmatter.` prefix in collections.
+
+```markdown
+---
+team:
+  - name: Alice
+    role: Developer
+  - name: Bob
+    role: Designer
+---
+```
+
+```html
+<ForEach collection="frontmatter.team" as="member">
+    <p>{member.name} - {member.role}</p>
+</ForEach>
+```
+
 ## 🛠️ Setup in a Snap
 
 Make sure you have Node installed on your machine, and then copy/paste the following command in your terminal:
 
 ```
-npm install -g @devdojo/static
+npm install -g @rosstopping/static
 ```
 
 Now you'll have the **static** command available on your machine, allowing you to run the following:
