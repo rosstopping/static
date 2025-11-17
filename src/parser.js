@@ -510,23 +510,49 @@ module.exports = {
             let jsonData;
             if (attributes.collection.startsWith('frontmatter.')) {
                 // Extract frontmatter data
-                if (!frontmatterData) {
-                    console.warn(`No frontmatter data available for collection: ${attributes.collection}`);
+                if (!frontmatterData || typeof frontmatterData !== 'object') {
+                    // Skip silently if no frontmatter data - this is normal for pages without content
                     continue;
                 }
                 const frontmatterKey = attributes.collection.replace('frontmatter.', '');
                 jsonData = frontmatterData[frontmatterKey];
                 if (!jsonData) {
-                    console.warn(`Frontmatter key '${frontmatterKey}' not found`);
+                    console.warn(`Frontmatter key '${frontmatterKey}' not found in frontmatter data. Available keys: ${Object.keys(frontmatterData).join(', ')}`);
                     continue;
                 }
                 if (!Array.isArray(jsonData)) {
-                    console.warn(`Frontmatter key '${frontmatterKey}' is not an array`);
+                    console.warn(`Frontmatter key '${frontmatterKey}' is not an array, it's a ${typeof jsonData}`);
                     continue;
                 }
             } else {
                 // Load from JSON file
                 jsonData = JSON.parse(fs.readFileSync(path.join(currentDirectory, '/collections/', `${attributes.collection}.json`), 'utf8'));
+            }
+
+            // Handle root attribute to navigate to a specific path in the JSON
+            if (attributes.root) {
+                const rootPath = attributes.root.split('.');
+                for (const key of rootPath) {
+                    if (jsonData && jsonData.hasOwnProperty(key)) {
+                        jsonData = jsonData[key];
+                    } else {
+                        console.warn(`Root path '${attributes.root}' not found in collection '${attributes.collection}'`);
+                        jsonData = [];
+                        break;
+                    }
+                }
+
+                // Validate that jsonData is an array after applying root
+                if (!Array.isArray(jsonData)) {
+                    console.warn(`Data at root '${attributes.root}' in collection '${attributes.collection}' is not an array`);
+                    continue;
+                }
+            }
+
+            // Ensure jsonData is an array for iteration
+            if (!Array.isArray(jsonData)) {
+                console.warn(`Collection '${attributes.collection}' is not an array. Use 'root' attribute to specify the array path.`);
+                continue;
             }
 
             let loopKeyword = attributes.collection.replace(/\//g, '.');
