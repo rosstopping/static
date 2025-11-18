@@ -318,12 +318,13 @@ module.exports = {
 
 
         let includeTag;
-        const includeRegex = /<include[\s\S]+?src\s*=\s*"([^"]+)"[\s\S]*?(?:\/>|>[\s\S]*?<\/include>)/gi;
+        const includeRegex = /<include[\s\S]+?src\s*=\s*"([^"]+)"[\s\S]*?(?:\/>|>([\s\S]*?)<\/include>)/gi;
 
 
         while ((includeTag = includeRegex.exec(htmlString)) !== null) {
 
             const includeSrcPath = path.join(currentDirectory, '/includes/', includeTag[1]);
+            const slotContent = includeTag[2] || ''; // Capture content between tags (group 2)
 
             let includeContent = fs.readFileSync(includeSrcPath, 'utf8');
 
@@ -342,6 +343,9 @@ module.exports = {
                 const regex = new RegExp(`{${attribute}}`, 'g');
                 includeContent = includeContent.replace(regex, processedValue);
             }
+
+            // Replace {slot} with the content between the include tags
+            includeContent = includeContent.replace(/{slot}/g, slotContent);
 
             htmlString = htmlString.replace(includeTag[0], includeContent);
         }

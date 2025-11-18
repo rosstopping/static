@@ -99,6 +99,40 @@ In your `includes/author-card.html`:
 </div>
 ```
 
+### Include Slot Content
+Pass content between include tags using the `{slot}` placeholder, similar to how layouts work. This makes includes work like reusable components with customizable content.
+
+```html
+<!-- Use a card wrapper with custom content -->
+<include src="card.html" title="Featured Article">
+    <p>This content goes inside the card's slot.</p>
+    <a href="/read-more">Read More</a>
+</include>
+```
+
+In your `includes/card.html`:
+```html
+<div class="card">
+    <h3 class="card-title">{title}</h3>
+    <div class="card-body">
+        {slot}
+    </div>
+</div>
+```
+
+Result:
+```html
+<div class="card">
+    <h3 class="card-title">Featured Article</h3>
+    <div class="card-body">
+        <p>This content goes inside the card's slot.</p>
+        <a href="/read-more">Read More</a>
+    </div>
+</div>
+```
+
+**Note:** Self-closing includes (`<include src="..." />`) will have an empty slot.
+
 ### Flexible Tag Formatting
 All custom tags support flexible whitespace and line breaks, making your code more readable. Tags can be written on multiple lines with spaces around attributes, and include tags support both self-closing and regular syntax.
 
