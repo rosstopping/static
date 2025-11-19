@@ -592,6 +592,8 @@ module.exports = {
                     let itemValue = item[key];
                     if (Array.isArray(item[key])) {
                         itemValue = item[key].join("|");
+                    } else if (typeof item[key] === 'object' && item[key] !== null) {
+                        itemValue = JSON.stringify(item[key]);
                     }
                     processedBody = processedBody.replace(placeholderRegex, itemValue);
                 }

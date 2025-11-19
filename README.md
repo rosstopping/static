@@ -77,6 +77,25 @@ team:
 </ForEach>
 ```
 
+**Object Parsing**: If a collection item property is an object, it will automatically be converted to JSON:
+
+```markdown
+---
+users:
+  - name: Alice
+    settings:
+      theme: dark
+      notifications: true
+---
+```
+
+```html
+<ForEach collection="frontmatter.users" as="user">
+    <p>{user.name}</p>
+    <code>{user.settings}</code> <!-- Outputs: {"theme":"dark","notifications":true} -->
+</ForEach>
+```
+
 ### Dynamic Include Attributes
 Pass template variables into include attributes, allowing dynamic content to be injected into reusable components. Supports both frontmatter and global data.
 
