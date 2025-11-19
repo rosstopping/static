@@ -152,6 +152,39 @@ Result:
 
 **Note:** Self-closing includes (`<include src="..." />`) will have an empty slot.
 
+### Fallback Values for Template Variables
+Use the `or` keyword to provide fallback values when a template variable doesn't exist. This prevents empty outputs and allows for graceful defaults.
+
+```html
+<!-- Return empty string if variable doesn't exist -->
+{frontmatter.author or null}
+{global.settings.tagline or null}
+
+<!-- Return a default string value -->
+{frontmatter.description or 'No description available'}
+{item.price or '0.00'}
+
+<!-- Works in all contexts -->
+<ForEach collection="posts" as="post">
+    <h2>{post.title or 'Untitled'}</h2>
+    <p>{post.excerpt or 'No excerpt provided'}</p>
+</ForEach>
+
+<!-- In includes -->
+<include src="card.html" 
+    title="{frontmatter.title or 'Default Title'}" 
+    subtitle="{frontmatter.subtitle or null}" />
+
+<!-- In layouts -->
+<title>{pageTitle or 'My Site'}</title>
+```
+
+**Supported syntax:**
+- `{variable or null}` - Returns empty string if variable doesn't exist
+- `{variable or 'text'}` - Returns the quoted text if variable doesn't exist
+- `{variable or "text"}` - Double quotes also work
+- `{variable or unquoted}` - Returns the unquoted text as-is
+
 ### Flexible Tag Formatting
 All custom tags support flexible whitespace and line breaks, making your code more readable. Tags can be written on multiple lines with spaces around attributes, and include tags support both self-closing and regular syntax.
 
