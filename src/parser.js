@@ -591,7 +591,12 @@ module.exports = {
                     const placeholderRegex = new RegExp(`{${loopKeyword}.${key}}`, 'g');
                     let itemValue = item[key];
                     if (Array.isArray(item[key])) {
-                        itemValue = item[key].join("|");
+                        // Check if array contains objects
+                        if (item[key].length > 0 && typeof item[key][0] === 'object' && item[key][0] !== null) {
+                            itemValue = JSON.stringify(item[key]);
+                        } else {
+                            itemValue = item[key].join("|");
+                        }
                     } else if (typeof item[key] === 'object' && item[key] !== null) {
                         itemValue = JSON.stringify(item[key]);
                     }
