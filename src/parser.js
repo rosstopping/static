@@ -84,7 +84,7 @@ module.exports = {
     },
 
     processFrontMatterReplacements(content, data) {
-        const placeholderRegex = /{frontmatter\.([^}|]+)(?:\s+or\s+(.+?))?}/g;
+        const placeholderRegex = /{frontmatter\.([^}|\s]+)(?:\s+or\s+([^}]+))?}/g;
 
         return content.replace(placeholderRegex, (match, key, fallback) => {
             if (data.hasOwnProperty(key)) {
@@ -96,7 +96,7 @@ module.exports = {
                     return '';
                 }
                 // Handle quoted strings
-                const quotedMatch = fallback.match(/^['"](.*)['"]$/);
+                const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                 if (quotedMatch) {
                     return quotedMatch[1];
                 }
@@ -138,7 +138,7 @@ module.exports = {
     },
 
     processGlobalData(body) {
-        const globalRegex = /{global\.([^.}|]+)(?:\.([^}|]+))?(?:\s+or\s+(.+?))?}/g;
+        const globalRegex = /{global\.([^.}|\s]+)(?:\.([^}|\s]+))?(?:\s+or\s+([^}]+))?}/g;
         let match;
 
         while ((match = globalRegex.exec(body)) !== null) {
@@ -154,7 +154,7 @@ module.exports = {
                     if (fallback.trim() === 'null') {
                         fallbackValue = '';
                     } else {
-                        const quotedMatch = fallback.match(/^['"](.*)['"]$/);
+                        const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                         fallbackValue = quotedMatch ? quotedMatch[1] : fallback.trim();
                     }
                     body = body.replace(match[0], fallbackValue);
@@ -173,7 +173,7 @@ module.exports = {
                     if (fallback.trim() === 'null') {
                         replacement = '';
                     } else {
-                        const quotedMatch = fallback.match(/^['"](.*)['"]$/);
+                        const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                         replacement = quotedMatch ? quotedMatch[1] : fallback.trim();
                     }
                 } else if (!replacement) {
@@ -309,11 +309,11 @@ module.exports = {
 
     replaceAttributesInLayout(layout, layoutAttributes) {
         for (let key in layoutAttributes) {
-            let regex = new RegExp(`{${key}(?:\\s+or\\s+.+?)?}`, 'g');
+            let regex = new RegExp(`{${key}(?:\\s+or\\s+[^}]+)?}`, 'g');
             layout = layout.replace(regex, layoutAttributes[key]);
         }
         // Handle any remaining placeholders with fallback syntax
-        const fallbackRegex = /{([^}.|]+)(?:\s+or\s+(.+?))?}/g;
+        const fallbackRegex = /{([^}.|]+)(?:\s+or\s+([^}]+))?}/g;
         layout = layout.replace(fallbackRegex, (match, key, fallback) => {
             // If it's a known system variable or contains dots, leave it
             if (match.includes('.') || key === 'slot' || key === 'content') {
@@ -324,7 +324,7 @@ module.exports = {
                 if (fallback.trim() === 'null') {
                     return '';
                 }
-                const quotedMatch = fallback.match(/^['"](.*)['"]$/);
+                const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                 return quotedMatch ? quotedMatch[1] : fallback.trim();
             }
             return match;
@@ -390,7 +390,7 @@ module.exports = {
                 // Process global data in attribute values (e.g., {global.settings.title})
                 processedValue = this.processGlobalData(processedValue);
 
-                const regex = new RegExp(`{${attribute}(?:\\s+or\\s+.+?)?}`, 'g');
+                const regex = new RegExp(`{${attribute}(?:\\s+or\\s+[^}]+)?}`, 'g');
                 includeContent = includeContent.replace(regex, processedValue);
             }
 
@@ -398,7 +398,7 @@ module.exports = {
             includeContent = includeContent.replace(/{slot}/g, slotContent);
 
             // Handle any remaining placeholders with fallback syntax in includes
-            const fallbackRegex = /{([^}.|]+)(?:\s+or\s+(.+?))?}/g;
+            const fallbackRegex = /{([^}.|]+)(?:\s+or\s+([^}]+))?}/g;
             includeContent = includeContent.replace(fallbackRegex, (match, key, fallback) => {
                 // Skip if it's a system keyword or already processed
                 if (key === 'slot' || match.includes('.')) {
@@ -408,7 +408,7 @@ module.exports = {
                     if (fallback.trim() === 'null') {
                         return '';
                     }
-                    const quotedMatch = fallback.match(/^['"](.*)['"]$/);
+                    const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                     return quotedMatch ? quotedMatch[1] : fallback.trim();
                 }
                 return match;
@@ -671,14 +671,20 @@ module.exports = {
                 }
 
                 // Handle any remaining placeholders for this loop keyword with fallback syntax
-                const fallbackRegex = new RegExp(`{${loopKeyword}\\.([^}|]+)(?:\\s+or\\s+(.+?))?}`, 'g');
+                const fallbackRegex = new RegExp(`{${loopKeyword}\\.([^}|\\s]+)(?:\\s+or\\s+([^}]+))?}`, 'g');
                 processedBody = processedBody.replace(fallbackRegex, (match, key, fallback) => {
                     if (fallback !== undefined) {
+                        // Handle 'null' keyword (without quotes)
                         if (fallback.trim() === 'null') {
                             return '';
                         }
-                        const quotedMatch = fallback.match(/^['"](.*)['"]$/);
-                        return quotedMatch ? quotedMatch[1] : fallback.trim();
+                        // Handle quoted strings
+                        const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
+                        if (quotedMatch) {
+                            return quotedMatch[1];
+                        }
+                        // Return unquoted value as-is
+                        return fallback.trim();
                     }
                     return match;
                 });
