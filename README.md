@@ -185,6 +185,30 @@ Use the `or` keyword to provide fallback values when a template variable doesn't
 - `{variable or "text"}` - Double quotes also work
 - `{variable or unquoted}` - Returns the unquoted text as-is
 
+### Dump Raw File Contents
+Output the raw contents of any file using the `{dump('path/to/file')}` function. The file path is relative to your project root. Content is automatically HTML-escaped for safe display.
+
+```html
+<!-- Display JSON file contents -->
+<pre><code>{dump('collections/events.json')}</code></pre>
+
+<!-- Display configuration file -->
+<pre>{dump('config/settings.json')}</pre>
+
+<!-- Display any text file -->
+<div class="code-block">
+    {dump('src/example.js')}
+</div>
+```
+
+**Use cases:**
+- Display JSON data for debugging
+- Show configuration files in documentation
+- Display code examples or snippets
+- Output any text-based file content
+
+**Note:** File content is HTML-escaped (`<` becomes `&lt;`, etc.) to prevent rendering issues. Wrap in `<pre>` or `<code>` tags for proper formatting.
+
 ### Flexible Tag Formatting
 All custom tags support flexible whitespace and line breaks, making your code more readable. Tags can be written on multiple lines with spaces around attributes, and include tags support both self-closing and regular syntax.
 

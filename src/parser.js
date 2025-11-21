@@ -33,7 +33,7 @@ module.exports = {
 
             page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath, frontmatterData);
 
-            page = this.processGlobalData(this.processCollectionJSON(page));
+            page = this.processGlobalData(this.processCollectionJSON(this.processDumpTags(page)));
         }
 
         return page;
@@ -123,6 +123,39 @@ module.exports = {
 
             return meetsCondition ? body : '';
         });
+    },
+
+    processDumpTags(body) {
+        const dumpRegex = /{dump\(['"]([^'"]+)['"]\)}/g;
+        let match;
+
+        while ((match = dumpRegex.exec(body)) !== null) {
+            const filePath = match[1];
+            const fullPath = path.join(currentDirectory, filePath);
+
+            if (!fs.existsSync(fullPath)) {
+                console.warn(`Dump file not found: ${fullPath}`);
+                body = body.replace(match[0], '');
+                continue;
+            }
+
+            try {
+                const fileContent = fs.readFileSync(fullPath, 'utf8');
+                // Escape the content for safe HTML insertion
+                const escapedContent = fileContent
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                body = body.replace(match[0], escapedContent);
+            } catch (err) {
+                console.warn(`Failed to read dump file: ${fullPath}`, err);
+                body = body.replace(match[0], '');
+            }
+        }
+
+        return body;
     },
 
     processCollectionJSON(body) {
@@ -398,12 +431,13 @@ module.exports = {
             includeContent = includeContent.replace(/{slot}/g, slotContent);
 
             // Handle any remaining placeholders with fallback syntax in includes
-            const fallbackRegex = /{([^}.|]+)(?:\s+or\s+([^}]+))?}/g;
+            const fallbackRegex = /{([^}.|\s(]+)(?:\s+or\s+([^}]+))?}/g;
             includeContent = includeContent.replace(fallbackRegex, (match, key, fallback) => {
-                // Skip if it's a system keyword or already processed
-                if (key === 'slot' || match.includes('.')) {
+                // Skip system keywords and special patterns
+                if (key === 'slot' || key === 'tailwindcss' || key === 'content' || key === 'static_content_element') {
                     return match;
                 }
+                // If there's a fallback, apply it
                 if (fallback !== undefined) {
                     if (fallback.trim() === 'null') {
                         return '';
@@ -411,6 +445,7 @@ module.exports = {
                     const quotedMatch = fallback.trim().match(/^['"](.*)['"]$/);
                     return quotedMatch ? quotedMatch[1] : fallback.trim();
                 }
+                // If no fallback and variable wasn't replaced, leave it as is
                 return match;
             });
 
