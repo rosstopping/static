@@ -1,6 +1,6 @@
 {
   "name": "@rosstopping/static",
-  "version": "1.12.2",
+  "version": "1.12.3",
   "description": "Static Site Generator",
   "main": "index.js",
   "scripts": {
