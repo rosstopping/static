@@ -681,7 +681,17 @@ module.exports = {
                 count = attributes.count;
             }
 
+            let offset = 0;
+            if (attributes.offset) {
+                offset = parseInt(attributes.offset, 10);
+            }
+
             jsonData = this.handleOrderBy(jsonData, attributes);
+
+            // Apply offset by slicing the array
+            if (offset > 0) {
+                jsonData = jsonData.slice(offset);
+            }
 
             let loopResult = '';
             let loop = 1;
