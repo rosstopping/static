@@ -33,7 +33,7 @@ module.exports = {
 
             page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath, frontmatterData);
 
-            page = this.processGlobalData(this.processCollectionJSON(this.processDumpTags(page)));
+            page = this.processGlobalData(this.processCollectionJSON(this.processDumpTags(this.processMarkdownFunction(page))));
         }
 
         return page;
@@ -154,6 +154,35 @@ module.exports = {
                 body = body.replace(match[0], '');
             }
         }
+
+        return body;
+    },
+
+    processMarkdownFunction(body) {
+        const markdownRegex = /{markdown\(([^)]+)\)}/g;
+        let match;
+
+        while ((match = markdownRegex.exec(body)) !== null) {
+            const variableName = match[1].trim();
+
+            // Try to find the variable value in the body
+            // This handles cases like {markdown(collection.content)}
+            // The actual content will be replaced during loop processing
+            // For now, we'll mark it for later processing or handle direct content
+
+            // If it's a direct string or content that needs markdown parsing
+            // we'll leave a placeholder that can be processed after variable replacement
+            // For immediate content, we can process it
+
+            continue; // Skip for now as variables need to be resolved first
+        }
+
+        // Process markdown function calls with resolved content
+        const resolvedMarkdownRegex = /{markdown\('([^']+)'\)}/g;
+        body = body.replace(resolvedMarkdownRegex, (match, content) => {
+            const converter = new showdown.Converter();
+            return converter.makeHtml(content);
+        });
 
         return body;
     },
@@ -718,6 +747,16 @@ module.exports = {
                     }
                     processedBody = processedBody.replace(placeholderRegex, itemValue);
                 }
+
+                // Process markdown function calls with collection variables
+                const markdownFunctionRegex = new RegExp(`{markdown\\(${loopKeyword}\\.([^)]+)\\)}`, 'g');
+                processedBody = processedBody.replace(markdownFunctionRegex, (match, key) => {
+                    if (item[key]) {
+                        const converter = new showdown.Converter();
+                        return converter.makeHtml(item[key]);
+                    }
+                    return match;
+                });
 
                 // Handle any remaining placeholders for this loop keyword with fallback syntax
                 const fallbackRegex = new RegExp(`{${loopKeyword}\\.([^}|\\s]+)(?:\\s+or\\s+([^}]+))?}`, 'g');
