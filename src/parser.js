@@ -212,6 +212,10 @@ module.exports = {
                 } else if (!replacement) {
                     replacement = '';
                 }
+                // If replacement is an object or array, convert to JSON
+                if (typeof replacement === 'object' && replacement !== null) {
+                    replacement = JSON.stringify(replacement);
+                }
             } else {
                 // Return the entire content without frontmatter
                 replacement = this.removeFrontMatter(fileContent);
