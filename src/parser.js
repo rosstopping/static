@@ -33,7 +33,7 @@ module.exports = {
 
             page = this.processCollectionLoops(this.processContentLoops(this.parseShortCodes(this.replaceAttributesInLayout(layout, layoutAttributes), url, build), filePath), filePath, frontmatterData);
 
-            page = this.processGlobalData(this.processCollectionJSON(this.processDumpTags(this.processMarkdownFunction(page))));
+            page = this.processGlobalData(this.processCollectionJSON(this.processDumpTags(this.processMarkdownFunction(page, frontmatterData))));
         }
 
         return page;
@@ -66,7 +66,9 @@ module.exports = {
         page = this.processFrontMatterConditions(page, contentAttributes);
         page = this.processFrontMatterReplacements(page, contentAttributes);
 
-
+        // Process markdown function again after frontmatter replacements
+        // This handles cases like {markdown(frontmatter.variable)}
+        page = this.processMarkdownFunction(page, contentAttributes);
 
         if (page.includes('{static_content_element}')) {
             let staticContentElement = "<div id='static-content' style='display:none;' data-toc='" + JSON.stringify(tableOfContents.json).replace(/'/g, "\\'") + "' data-frontmatter='" + JSON.stringify(contentAttributes).replace(/'/g, "\\'") + "'></div>";
@@ -158,36 +160,46 @@ module.exports = {
         return body;
     },
 
-    processMarkdownFunction(body) {
+    processMarkdownFunction(body, frontmatterData = null) {
+        // Process markdown function calls with any content
         const markdownRegex = /{markdown\(([^)]+)\)}/g;
-        let match;
 
-        while ((match = markdownRegex.exec(body)) !== null) {
-            const variableName = match[1].trim();
+        body = body.replace(markdownRegex, (match, content) => {
+            const trimmedContent = content.trim();
 
-            // Try to find the variable value in the body
-            // This handles cases like {markdown(collection.content)}
-            // The actual content will be replaced during loop processing
-            // For now, we'll mark it for later processing or handle direct content
+            // If it's a quoted string, extract the string content
+            const quotedMatch = trimmedContent.match(/^['"](.*)['"]$/s);
+            if (quotedMatch) {
+                const converter = new showdown.Converter();
+                return converter.makeHtml(quotedMatch[1]);
+            }
 
-            // If it's a direct string or content that needs markdown parsing
-            // we'll leave a placeholder that can be processed after variable replacement
-            // For immediate content, we can process it
+            // Check if it's a frontmatter variable reference
+            const frontmatterMatch = trimmedContent.match(/^frontmatter\.(.+)$/);
+            if (frontmatterMatch && frontmatterData) {
+                const key = frontmatterMatch[1];
+                if (frontmatterData.hasOwnProperty(key)) {
+                    const converter = new showdown.Converter();
+                    return converter.makeHtml(frontmatterData[key]);
+                }
+                // If variable not found, return original match
+                return match;
+            }
 
-            continue; // Skip for now as variables need to be resolved first
-        }
+            // Otherwise, treat it as plain content
+            // If the content still looks like a variable name, it wasn't replaced
+            if (trimmedContent.match(/^[a-zA-Z_][a-zA-Z0-9_.]*$/)) {
+                // This looks like an unresolved variable, return as-is
+                return match;
+            }
 
-        // Process markdown function calls with resolved content
-        const resolvedMarkdownRegex = /{markdown\('([^']+)'\)}/g;
-        body = body.replace(resolvedMarkdownRegex, (match, content) => {
+            // Otherwise parse as markdown
             const converter = new showdown.Converter();
-            return converter.makeHtml(content);
+            return converter.makeHtml(trimmedContent);
         });
 
         return body;
-    },
-
-    processCollectionJSON(body) {
+    }, processCollectionJSON(body) {
         const collectionRegex = /{collections\.([^}]+)\.json}/g;
         let match;
         while ((match = collectionRegex.exec(body)) !== null) {
